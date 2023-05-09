@@ -52,6 +52,7 @@
 #include "nav_msgs/GetMap.h"
 #include "nav_msgs/SetMap.h"
 #include "std_srvs/Empty.h"
+#include "std_msgs/Float64.h"
 
 // For transform support
 #include "tf2/LinearMath/Transform.h"
@@ -255,6 +256,11 @@ class AmclNode
     ros::ServiceServer set_map_srv_;
     ros::Subscriber initial_pose_sub_old_;
     ros::Subscriber map_sub_;
+
+    //measure comptime of the laserReceived function
+    ros::WallTime start_, end_;
+    double comptime_;
+    ros::Publisher comptime_pub_ =  nh_.advertise<std_msgs::Float64>("/comptime", 10);
 
     diagnostic_updater::Updater diagnosic_updater_;
     void standardDeviationDiagnostics(diagnostic_updater::DiagnosticStatusWrapper& diagnostic_status);
@@ -1136,6 +1142,8 @@ AmclNode::laserReceived(const sensor_msgs::LaserScanConstPtr& laser_scan)
   boost::recursive_mutex::scoped_lock lr(configuration_mutex_);
   int laser_index = -1;
 
+  start_ = ros::WallTime::now();
+
   // Do we have the base->base_laser Tx yet?
   if(frame_to_laser_.find(laser_scan_frame_id) == frame_to_laser_.end())
   {
@@ -1524,6 +1532,13 @@ AmclNode::laserReceived(const sensor_msgs::LaserScanConstPtr& laser_scan)
       save_pose_last_time = now;
     }
   }
+
+  end_ = ros::WallTime::now();
+  comptime_ = (end_ - start_).toNSec() * 1e-6;
+
+  std_msgs::Float64 comptime_msg;
+  comptime_msg.data = comptime_;
+  comptime_pub_.publish(comptime_msg);
 
   diagnosic_updater_.update();
 }
