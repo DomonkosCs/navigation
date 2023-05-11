@@ -52,7 +52,7 @@
 #include "nav_msgs/GetMap.h"
 #include "nav_msgs/SetMap.h"
 #include "std_srvs/Empty.h"
-#include "std_msgs/Float64.h"
+#include "naoqi_bridge_msgs/FloatStamped.h"
 
 // For transform support
 #include "tf2/LinearMath/Transform.h"
@@ -260,7 +260,7 @@ class AmclNode
     //measure comptime of the laserReceived function
     ros::WallTime start_, end_;
     double comptime_;
-    ros::Publisher comptime_pub_ =  nh_.advertise<std_msgs::Float64>("/comptime", 10);
+    ros::Publisher comptime_pub_ =  nh_.advertise<naoqi_bridge_msgs::FloatStamped>("/comptime", 10);
 
     diagnostic_updater::Updater diagnosic_updater_;
     void standardDeviationDiagnostics(diagnostic_updater::DiagnosticStatusWrapper& diagnostic_status);
@@ -1536,8 +1536,9 @@ AmclNode::laserReceived(const sensor_msgs::LaserScanConstPtr& laser_scan)
   end_ = ros::WallTime::now();
   comptime_ = (end_ - start_).toNSec() * 1e-6;
 
-  std_msgs::Float64 comptime_msg;
+  naoqi_bridge_msgs::FloatStamped comptime_msg;
   comptime_msg.data = comptime_;
+  comptime_msg.header.stamp = ros::Time::now();
   comptime_pub_.publish(comptime_msg);
 
   diagnosic_updater_.update();
